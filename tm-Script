@@ -1,18 +1,388 @@
--- TM-UI Core Framework - 压缩简化版
-local TM_UI={Version="1.0"}local Players=game:GetService("Players")local TweenService=game:GetService("TweenService")local UserInputService=game:GetService("UserInputService")local RunService=game:GetService("RunService")local function CreateInstance(className,props)local obj=Instance.new(className)for prop,value in pairs(props)do if pcall(function()return obj[prop]end)then obj[prop]=value end end;return obj end
-local function ApplyCorner(element,radius)local corner=CreateInstance("UICorner",{CornerRadius=UDim.new(radius or 0.02,0)})corner.Parent=element;return corner end
-local function ApplyStroke(element,color,transparency,thickness)local stroke=CreateInstance("UIStroke",{Color=color or Color3.new(1,1,1),Transparency=transparency or 0.5,Thickness=thickness or 1})stroke.Parent=element;return stroke end
-local function Tween(object,properties,duration,easingStyle)duration=duration or 0.3;local info=TweenInfo.new(duration,easingStyle or Enum.EasingStyle.Quad)local tweenObj=TweenService:Create(object,info,properties)tweenObj:Play()return tweenObj end
-TM_UI.Themes={Dark={Primary=Color3.fromHex("#050505"),Secondary=Color3.fromHex("#121212"),Accent=Color3.fromHex("#00ff40"),Text=Color3.fromHex("#ffffff"),Success=Color3.fromHex("#00cc33"),Error=Color3.fromHex("#ff4444")},Midnight={Primary=Color3.fromHex("#0a0a1a"),Secondary=Color3.fromHex("#1a1a2a"),Accent=Color3.fromHex("#00ff66"),Text=Color3.fromHex("#ffffff")}}
-function TM_UI:CreateWindow(config)config=config or{}local window={Id=math.random(1000,9999),Config=config,Tabs={},IsVisible=true}window.Gui=CreateInstance("ScreenGui",{Name="TMUI_"..window.Id,ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})window.MainFrame=CreateInstance("Frame",{Name="MainFrame",Size=UDim2.new(0,config.Width or 500,0,config.Height or 400),Position=config.Position or UDim2.new(0.5,0,0.5,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=TM_UI.Themes.Dark.Primary,BackgroundTransparency=0.1,Parent=window.Gui})ApplyCorner(window.MainFrame,0.02)ApplyStroke(window.MainFrame,TM_UI.Themes.Dark.Accent,0.6,1)window.TitleBar=CreateInstance("Frame",{Name="TitleBar",Size=UDim2.new(1,0,0,40),BackgroundColor3=TM_UI.Themes.Dark.Secondary,BackgroundTransparency=0.1,Parent=window.MainFrame})ApplyCorner(window.TitleBar,0.02)window.TitleLabel=CreateInstance("TextLabel",{Name="Title",Text=config.Title or"TM-UI Window",Size=UDim2.new(0.6,0,1,0),Position=UDim2.new(0.2,0,0,0),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Accent,Font=Enum.Font.Code,TextSize=16,Parent=window.TitleBar})window.CloseButton=CreateInstance("TextButton",{Name="CloseButton",Text="×",Size=UDim2.new(0,30,0,30),Position=UDim2.new(1,-35,0.5,-15),AnchorPoint=Vector2.new(0,0.5),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Accent,Font=Enum.Font.GothamBold,TextSize=20,AutoButtonColor=false,Parent=window.TitleBar})window.ContentFrame=CreateInstance("Frame",{Name="ContentFrame",Size=UDim2.new(1,-10,1,-50),Position=UDim2.new(0,5,0,45),BackgroundTransparency=1,Parent=window.MainFrame})window.TabContainer=CreateInstance("Frame",{Name="TabContainer",Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Parent=window.ContentFrame})window.TabButtons=CreateInstance("ScrollingFrame",{Name="TabButtons",Size=UDim2.new(0.3,0,1,0),BackgroundTransparency=1,ScrollBarThickness=3,CanvasSize=UDim2.new(0,0,0,0),Parent=window.TabContainer})window.TabContent=CreateInstance("ScrollingFrame",{Name="TabContent",Size=UDim2.new(0.7,-5,1,0),Position=UDim2.new(0.3,5,0,0),BackgroundTransparency=1,ScrollBarThickness=3,CanvasSize=UDim2.new(0,0,0,0),Parent=window.TabContainer})local tabButtonsLayout=CreateInstance("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=window.TabButtons})local tabContentLayout=CreateInstance("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,10),Parent=window.TabContent})window.CloseButton.MouseButton1Click:Connect(function()window:Destroy()end)local dragging,dragStart,startPos;window.TitleBar.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true;dragStart=input.Position;startPos=window.MainFrame.Position end end)UserInputService.InputChanged:Connect(function(input)if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then local delta=input.Position-dragStart;window.MainFrame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)end end)UserInputService.InputEnded:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)function window:Show()self.Gui.Parent=Players.LocalPlayer:WaitForChild("PlayerGui")self.IsVisible=true;Tween(self.MainFrame,{Size=UDim2.new(0,config.Width or 500,0,config.Height or 400)},0.5)end
-function window:Hide()Tween(self.MainFrame,{Size=UDim2.new(0,0,0,0)},0.3)task.wait(0.3)self.Gui.Enabled=false;self.IsVisible=false end
-function window:Destroy()self:Hide()task.wait(0.3)if self.Gui then self.Gui:Destroy()end end
-function window:AddTab(tabName)local tab={Name=tabName,Elements={}}local tabButton=CreateInstance("TextButton",{Name=tabName,Text=tabName,Size=UDim2.new(0.9,0,0,40),BackgroundColor3=TM_UI.Themes.Dark.Secondary,BackgroundTransparency=0.4,TextColor3=TM_UI.Themes.Dark.Text,Font=Enum.Font.Code,TextSize=14,AutoButtonColor=false,Parent=window.TabButtons})ApplyCorner(tabButton,0.02)ApplyStroke(tabButton,TM_UI.Themes.Dark.Accent,0.6,1)local tabContent=CreateInstance("Frame",{Name=tabName.."Content",Size=UDim2.new(1,0,0,0),BackgroundTransparency=1,Visible=#window.Tabs==0,Parent=window.TabContent})local contentLayout=CreateInstance("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Padding=UDim.new(0,5),Parent=tabContent})tabButton.MouseButton1Click:Connect(function()for _,existingTab in pairs(window.Tabs)do if existingTab.Content then existingTab.Content.Visible=false end end;tabContent.Visible=true end)tab.Button=tabButton;tab.Content=tabContent;tab.Layout=contentLayout;function tab:AddButton(buttonName,callback)local button=CreateInstance("TextButton",{Name=buttonName,Text=buttonName,Size=UDim2.new(0.95,0,0,40),BackgroundColor3=TM_UI.Themes.Dark.Secondary,BackgroundTransparency=0.4,TextColor3=TM_UI.Themes.Dark.Text,Font=Enum.Font.Code,TextSize=14,AutoButtonColor=false,Parent=self.Content})ApplyCorner(button,0.02)ApplyStroke(button,TM_UI.Themes.Dark.Accent,0.6,1)button.MouseEnter:Connect(function()Tween(button,{BackgroundTransparency=0.2,TextColor3=TM_UI.Themes.Dark.Accent})end)button.MouseLeave:Connect(function()Tween(button,{BackgroundTransparency=0.4,TextColor3=TM_UI.Themes.Dark.Text})end)button.MouseButton1Click:Connect(function()if callback then pcall(callback)end end)table.insert(self.Elements,button)return button end
-function tab:AddToggle(toggleName,defaultValue,callback)local toggleFrame=CreateInstance("Frame",{Name=toggleName,Size=UDim2.new(0.95,0,0,40),BackgroundTransparency=1,Parent=self.Content})local label=CreateInstance("TextLabel",{Text=toggleName,Size=UDim2.new(0.7,0,1,0),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Text,Font=Enum.Font.Code,TextSize=14,TextXAlignment=Enum.TextXAlignment.Left,Parent=toggleFrame})local toggleBg=CreateInstance("Frame",{Size=UDim2.new(0.2,0,0.5,0),Position=UDim2.new(0.75,0,0.25,0),BackgroundColor3=defaultValue and TM_UI.Themes.Dark.Accent or Color3.fromRGB(80,80,80),Parent=toggleFrame})ApplyCorner(toggleBg,0.5)local slider=CreateInstance("Frame",{Size=UDim2.new(0.4,0,0.8,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Color3.new(1,1,1),Position=defaultValue and UDim2.new(0.7,0,0.5,0)or UDim2.new(0.3,0,0.5,0),Parent=toggleBg})ApplyCorner(slider,0.5)local state=defaultValue or false;local hitbox=CreateInstance("TextButton",{Size=UDim2.new(0.2,0,0.5,0),Position=UDim2.new(0.75,0,0.25,0),BackgroundTransparency=1,Text="",Parent=toggleFrame})hitbox.MouseButton1Click:Connect(function()state=not state;if state then Tween(toggleBg,{BackgroundColor3=TM_UI.Themes.Dark.Accent})Tween(slider,{Position=UDim2.new(0.7,0,0.5,0)})else Tween(toggleBg,{BackgroundColor3=Color3.fromRGB(80,80,80)})Tween(slider,{Position=UDim2.new(0.3,0,0.5,0)})end;if callback then pcall(callback,state)end end)table.insert(self.Elements,toggleFrame)return{SetState=function(value)state=value end}end
-function tab:AddSlider(sliderName,min,max,defaultValue,callback)local sliderFrame=CreateInstance("Frame",{Name=sliderName,Size=UDim2.new(0.95,0,0,60),BackgroundTransparency=1,Parent=self.Content})local label=CreateInstance("TextLabel",{Text=sliderName,Size=UDim2.new(0.7,0,0.5,0),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Text,Font=Enum.Font.Code,TextSize=14,TextXAlignment=Enum.TextXAlignment.Left,Parent=sliderFrame})local valueLabel=CreateInstance("TextLabel",{Text=tostring(defaultValue or min),Size=UDim2.new(0.25,0,0.5,0),Position=UDim2.new(0.75,0,0,0),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Accent,Font=Enum.Font.Code,TextSize=14,TextXAlignment=Enum.TextXAlignment.Right,Parent=sliderFrame})local sliderBg=CreateInstance("Frame",{Size=UDim2.new(0.9,0,0.3,0),Position=UDim2.new(0.05,0,0.6,0),BackgroundColor3=TM_UI.Themes.Dark.Secondary,BackgroundTransparency=0.4,Parent=sliderFrame})ApplyCorner(sliderBg,0.5)local sliderFill=CreateInstance("Frame",{Size=UDim2.new((defaultValue-min)/(max-min),0,1,0),BackgroundColor3=TM_UI.Themes.Dark.Accent,BackgroundTransparency=0.5,Parent=sliderBg})ApplyCorner(sliderFill,0.5)local sliderHandle=CreateInstance("Frame",{Size=UDim2.new(0.1,0,1.5,0),AnchorPoint=Vector2.new(0.5,0.5),BackgroundColor3=Color3.new(1,1,1),Position=UDim2.new((defaultValue-min)/(max-min),0,0.5,0),Parent=sliderBg})ApplyCorner(sliderHandle,0.5)local currentValue=defaultValue or min;local dragging=false;local function updateSlider(value)currentValue=math.clamp(value,min,max)local percent=(currentValue-min)/(max-min)sliderFill.Size=UDim2.new(percent,0,1,0)sliderHandle.Position=UDim2.new(percent,0,0.5,0)valueLabel.Text=tostring(currentValue)if callback then pcall(callback,currentValue)end end
-sliderBg.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true;local percent=(input.Position.X-sliderBg.AbsolutePosition.X)/sliderBg.AbsoluteSize.X;updateSlider(min+percent*(max-min))end end)UserInputService.InputChanged:Connect(function(input)if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then local percent=(input.Position.X-sliderBg.AbsolutePosition.X)/sliderBg.AbsoluteSize.X;updateSlider(min+percent*(max-min))end end)UserInputService.InputEnded:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)table.insert(self.Elements,sliderFrame)return{SetValue=updateSlider}end
-table.insert(window.Tabs,tab)tabButtonsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()window.TabButtons.CanvasSize=UDim2.new(0,0,0,tabButtonsLayout.AbsoluteContentSize.Y)end)contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()tabContent.CanvasSize=UDim2.new(0,0,0,contentLayout.AbsoluteContentSize.Y)end)return tab end
-function window:ShowNotification(title,message,duration)duration=duration or 3;local notification=CreateInstance("Frame",{Name="Notification",Size=UDim2.new(0,300,0,80),Position=UDim2.new(1,10,0,10),AnchorPoint=Vector2.new(1,0),BackgroundColor3=TM_UI.Themes.Dark.Secondary,BackgroundTransparency=0.1,Parent=self.Gui})ApplyCorner(notification,0.02)ApplyStroke(notification,TM_UI.Themes.Dark.Accent,0.6,1)local titleLabel=CreateInstance("TextLabel",{Text=title or"通知",Size=UDim2.new(1,-10,0,25),Position=UDim2.new(0,5,0,5),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Accent,Font=Enum.Font.Code,TextSize=16,Parent=notification})local messageLabel=CreateInstance("TextLabel",{Text=message or"",Size=UDim2.new(1,-10,1,-30),Position=UDim2.new(0,5,0,30),BackgroundTransparency=1,TextColor3=TM_UI.Themes.Dark.Text,Font=Enum.Font.Code,TextSize=14,Parent=notification})Tween(notification,{Position=UDim2.new(1,-310,0,10)},0.3)task.delay(duration,function()Tween(notification,{Position=UDim2.new(1,10,0,10)},0.3)task.wait(0.3)notification:Destroy()end)end
-window:Show()setmetatable(window,TM_UI)return window end
-function TM_UI:SetTheme(themeName)if TM_UI.Themes[themeName]then self.Config.Theme=themeName end end
-print("✅ TM-UI 加载成功!")return TM_UI
+-- Mobile UI Library - 手机端优化版
+local MobileUI = {}
+MobileUI.__index = MobileUI
+
+-- 服务引用
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- 工具函数
+local function CreateInstance(className, props)
+    local obj = Instance.new(className)
+    for prop, value in pairs(props) do
+        if pcall(function() return obj[prop] end) then
+            obj[prop] = value
+        end
+    end
+    return obj
+end
+
+local function Tween(object, properties, duration)
+    local info = TweenInfo.new(duration or 0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(object, info, properties)
+    tween:Play()
+    return tween
+end
+
+-- 创建窗口
+function MobileUI:CreateWindow(config)
+    config = config or {}
+    local window = setmetatable({}, MobileUI)
+    
+    -- 创建GUI容器
+    window.Gui = CreateInstance("ScreenGui", {
+        Name = "MobileUI_" .. math.random(1000, 9999),
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    })
+    
+    -- 自适应屏幕尺寸
+    local screenSize = workspace.CurrentCamera.ViewportSize
+    local width = math.min(screenSize.X * 0.9, 400)
+    local height = math.min(screenSize.Y * 0.8, 600)
+    
+    -- 主窗口框架
+    window.MainFrame = CreateInstance("Frame", {
+        Size = UDim2.new(0, width, 0, height),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromHex("#1a1a1a"),
+        BackgroundTransparency = 0.1,
+        Parent = window.Gui
+    })
+    
+    -- 样式装饰
+    CreateInstance("UICorner", {CornerRadius = UDim.new(0.04, 0), Parent = window.MainFrame})
+    CreateInstance("UIStroke", {Color = Color3.fromHex("#00ff40"), Thickness = 2, Parent = window.MainFrame})
+    
+    -- 标题栏
+    window.TitleBar = CreateInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 50),
+        BackgroundColor3 = Color3.fromHex("#2d2d2d"),
+        Parent = window.MainFrame
+    })
+    
+    window.Title = CreateInstance("TextLabel", {
+        Text = config.Title or "Mobile UI",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0.15, 0, 0, 0),
+        BackgroundTransparency = 1,
+        TextColor3 = Color3.fromHex("#00ff40"),
+        Font = Enum.Font.GothamBold,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = window.TitleBar
+    })
+    
+    -- 关闭按钮
+    window.CloseButton = CreateInstance("TextButton", {
+        Text = "×",
+        Size = UDim2.new(0, 40, 0, 40),
+        Position = UDim2.new(1, -45, 0.5, -20),
+        AnchorPoint = Vector2.new(0, 0.5),
+        BackgroundTransparency = 1,
+        TextColor3 = Color3.fromHex("#ff4444"),
+        Font = Enum.Font.GothamBold,
+        TextSize = 24,
+        AutoButtonColor = false,
+        Parent = window.TitleBar
+    })
+    
+    -- 标签按钮区域
+    window.TabButtons = CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 0, 60),
+        Position = UDim2.new(0, 0, 0, 50),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
+        CanvasSize = UDim2.new(2, 0, 0, 0),
+        Parent = window.MainFrame
+    })
+    
+    CreateInstance("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5),
+        Parent = window.TabButtons
+    })
+    
+    -- 内容区域
+    window.ContentFrame = CreateInstance("ScrollingFrame", {
+        Size = UDim2.new(1, -20, 1, -120),
+        Position = UDim2.new(0, 10, 0, 120),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        CanvasSize = UDim2.new(0, 0, 2, 0),
+        Parent = window.MainFrame
+    })
+    
+    CreateInstance("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 10),
+        Parent = window.ContentFrame
+    })
+    
+    window.Tabs = {}
+    window.CurrentTab = nil
+    
+    -- 关闭按钮事件
+    window.CloseButton.MouseButton1Click:Connect(function()
+        window:Destroy()
+    end)
+    
+    -- 添加标签页方法
+    function window:AddTab(name)
+        local tab = {Name = name, Elements = {}}
+        
+        local tabButton = CreateInstance("TextButton", {
+            Text = name,
+            Size = UDim2.new(0, 120, 0, 50),
+            BackgroundColor3 = Color3.fromHex("#2d2d2d"),
+            BackgroundTransparency = 0.3,
+            TextColor3 = Color3.fromHex("#cccccc"),
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            AutoButtonColor = false,
+            Parent = self.TabButtons
+        })
+        
+        CreateInstance("UICorner", {CornerRadius = UDim.new(0.02, 0), Parent = tabButton})
+        
+        local tabContent = CreateInstance("Frame", {
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Visible = false,
+            Parent = self.ContentFrame
+        })
+        
+        -- 标签切换逻辑
+        tabButton.MouseButton1Click:Connect(function()
+            for _, existingTab in pairs(self.Tabs) do
+                existingTab.Content.Visible = false
+                Tween(existingTab.Button, {BackgroundColor3 = Color3.fromHex("#2d2d2d")})
+            end
+            tabContent.Visible = true
+            Tween(tabButton, {BackgroundColor3 = Color3.fromHex("#00ff40")})
+            self.CurrentTab = tab
+        end)
+        
+        tab.Button = tabButton
+        tab.Content = tabContent
+        table.insert(self.Tabs, tab)
+        
+        -- 默认选中第一个标签
+        if #self.Tabs == 1 then
+            tabButton:MouseButton1Click()
+        end
+        
+        -- 添加按钮方法
+        function tab:AddButton(text, callback)
+            local button = CreateInstance("TextButton", {
+                Text = text,
+                Size = UDim2.new(1, -20, 0, 50),
+                BackgroundColor3 = Color3.fromHex("#2d2d2d"),
+                BackgroundTransparency = 0.3,
+                TextColor3 = Color3.fromHex("#ffffff"),
+                Font = Enum.Font.Gotham,
+                TextSize = 16,
+                AutoButtonColor = false,
+                Parent = self.Content
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.03, 0), Parent = button})
+            CreateInstance("UIStroke", {Color = Color3.fromHex("#00ff40"), Thickness = 1, Parent = button})
+            
+            button.MouseButton1Click:Connect(function()
+                if callback then pcall(callback) end
+            end)
+            
+            return button
+        end
+        
+        -- 添加开关方法
+        function tab:AddToggle(text, defaultValue, callback)
+            local toggleFrame = CreateInstance("Frame", {
+                Size = UDim2.new(1, -20, 0, 50),
+                BackgroundTransparency = 1,
+                Parent = self.Content
+            })
+            
+            local label = CreateInstance("TextLabel", {
+                Text = text,
+                Size = UDim2.new(0.7, 0, 1, 0),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromHex("#ffffff"),
+                Font = Enum.Font.Gotham,
+                TextSize = 16,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = toggleFrame
+            })
+            
+            local state = defaultValue or false
+            local toggleBg = CreateInstance("Frame", {
+                Size = UDim2.new(0, 60, 0, 30),
+                Position = UDim2.new(1, -70, 0.5, -15),
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundColor3 = state and Color3.fromHex("#00ff40") or Color3.fromHex("#666666"),
+                Parent = toggleFrame
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = toggleBg})
+            
+            local toggleSlider = CreateInstance("Frame", {
+                Size = UDim2.new(0, 26, 0, 26),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = state and UDim2.new(0.75, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0),
+                BackgroundColor3 = Color3.new(1, 1, 1),
+                Parent = toggleBg
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = toggleSlider})
+            
+            local hitbox = CreateInstance("TextButton", {
+                Size = UDim2.new(0, 60, 0, 30),
+                Position = UDim2.new(1, -70, 0.5, -15),
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundTransparency = 1,
+                Text = "",
+                Parent = toggleFrame
+            })
+            
+            hitbox.MouseButton1Click:Connect(function()
+                state = not state
+                Tween(toggleBg, {BackgroundColor3 = state and Color3.fromHex("#00ff40") or Color3.fromHex("#666666")})
+                Tween(toggleSlider, {Position = state and UDim2.new(0.75, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0)})
+                if callback then pcall(callback, state) end
+            end)
+            
+            return {SetState = function(value) state = value end}
+        end
+        
+        -- 添加滑块方法
+        function tab:AddSlider(text, min, max, defaultValue, callback)
+            local sliderFrame = CreateInstance("Frame", {
+                Size = UDim2.new(1, -20, 0, 80),
+                BackgroundTransparency = 1,
+                Parent = self.Content
+            })
+            
+            local label = CreateInstance("TextLabel", {
+                Text = text,
+                Size = UDim2.new(1, 0, 0, 30),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromHex("#ffffff"),
+                Font = Enum.Font.Gotham,
+                TextSize = 16,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = sliderFrame
+            })
+            
+            local valueLabel = CreateInstance("TextLabel", {
+                Text = tostring(defaultValue or min),
+                Size = UDim2.new(0.3, 0, 0, 30),
+                Position = UDim2.new(0.7, 0, 0, 0),
+                BackgroundTransparency = 1,
+                TextColor3 = Color3.fromHex("#00ff40"),
+                Font = Enum.Font.Gotham,
+                TextSize = 16,
+                TextXAlignment = Enum.TextXAlignment.Right,
+                Parent = sliderFrame
+            })
+            
+            local sliderBg = CreateInstance("Frame", {
+                Size = UDim2.new(1, 0, 0, 6),
+                Position = UDim2.new(0, 0, 0, 40),
+                BackgroundColor3 = Color3.fromHex("#444444"),
+                Parent = sliderFrame
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = sliderBg})
+            
+            local sliderFill = CreateInstance("Frame", {
+                Size = UDim2.new((defaultValue - min) / (max - min), 0, 1, 0),
+                BackgroundColor3 = Color3.fromHex("#00ff40"),
+                Parent = sliderBg
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = sliderFill})
+            
+            local sliderHandle = CreateInstance("Frame", {
+                Size = UDim2.new(0, 20, 0, 20),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundColor3 = Color3.new(1, 1, 1),
+                Position = UDim2.new((defaultValue - min) / (max - min), 0, 0.5, 0),
+                Parent = sliderBg
+            })
+            
+            CreateInstance("UICorner", {CornerRadius = UDim.new(0.5, 0), Parent = sliderHandle})
+            CreateInstance("UIStroke", {Color = Color3.fromHex("#00ff40"), Thickness = 2, Parent = sliderHandle})
+            
+            local currentValue = defaultValue or min
+            local dragging = false
+            
+            local function updateSlider(value)
+                currentValue = math.clamp(value, min, max)
+                local percent = (currentValue - min) / (max - min)
+                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                sliderHandle.Position = UDim2.new(percent, 0, 0.5, 0)
+                valueLabel.Text = tostring(math.floor(currentValue))
+                if callback then pcall(callback, currentValue) end
+            end
+            
+            sliderBg.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    local percent = (input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X
+                    updateSlider(min + percent * (max - min))
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.Touch then
+                    local percent = (input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X
+                    updateSlider(min + percent * (max - min))
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            
+            return {SetValue = updateSlider}
+        end
+        
+        return tab
+    end
+    
+    -- 窗口显示方法
+    function window:Show()
+        self.Gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+        self.MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        Tween(self.MainFrame, {Size = UDim2.new(0, width, 0, height)}, 0.3)
+    end
+    
+    -- 窗口隐藏方法
+    function window:Hide()
+        Tween(self.MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
+        task.wait(0.3)
+        self.Gui.Enabled = false
+    end
+    
+    -- 窗口销毁方法
+    function window:Destroy()
+        self:Hide()
+        task.wait(0.3)
+        if self.Gui then
+            self.Gui:Destroy()
+        end
+    end
+    
+    -- 自动显示窗口
+    window:Show()
+    return window
+end
+
+return MobileUI
