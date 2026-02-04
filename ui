@@ -1,1 +1,487 @@
-aaq
+-- UI库主文件: UI_Library.lua
+local UI_Library = {}
+UI_Library.__index = UI_Library
+UI_Library.Version = "1.0.0"
+
+-- 依赖服务
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- 颜色配置
+UI_Library.Themes = {
+    Dark = {
+        Primary = Color3.fromRGB(25, 25, 25),
+        Secondary = Color3.fromRGB(40, 40, 40),
+        Accent = Color3.fromRGB(0, 120, 215),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(200, 200, 200)
+    },
+    Light = {
+        Primary = Color3.fromRGB(240, 240, 240),
+        Secondary = Color3.fromRGB(220, 220, 220),
+        Accent = Color3.fromRGB(0, 120, 215),
+        Text = Color3.fromRGB(0, 0, 0),
+        TextSecondary = Color3.fromRGB(80, 80, 80)
+    },
+    Midnight = {
+        Primary = Color3.fromRGB(15, 15, 35),
+        Secondary = Color3.fromRGB(30, 30, 50),
+        Accent = Color3.fromRGB(138, 43, 226),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 200)
+    }
+}
+
+-- 图标系统
+UI_Library.Icons = {
+    Home = "🔍",
+    Settings = "⚙️",
+    User = "👤",
+    Target = "🎯",
+    Eye = "👁️",
+    Backpack = "🎒",
+    Hand = "✋",
+    Circle = "⭕",
+    Music = "🎵",
+    Star = "⭐",
+    Zap = "⚡",
+    Check = "✅",
+    Alert = "⚠️"
+}
+
+-- 工具函数
+function UI_Library:CreateInstance(className, properties)
+    local instance = Instance.new(className)
+    for property, value in pairs(properties) do
+        instance[property] = value
+    end
+    return instance
+end
+
+function UI_Library:Tween(object, properties, duration, easingStyle, easingDirection)
+    local tweenInfo = TweenInfo.new(
+        duration or 0.3,
+        easingStyle or Enum.EasingStyle.Quad,
+        easingDirection or Enum.EasingDirection.Out
+    )
+    local tween = TweenService:Create(object, tweenInfo, properties)
+    tween:Play()
+    return tween
+end
+
+-- 主窗口类
+function UI_Library:CreateWindow(config)
+    local Window = {}
+    Window.Config = config or {}
+    Window.Tabs = {}
+    Window.CurrentTheme = self.Themes.Dark
+    
+    -- 创建主界面
+    Window.ScreenGui = self:CreateInstance("ScreenGui", {
+        Name = config.Name or "UI_Library_Window",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Global
+    })
+    
+    Window.MainFrame = self:CreateInstance("Frame", {
+        Name = "MainFrame",
+        Size = config.Size or UDim2.new(0, 400, 0, 500),
+        Position = config.Position or UDim2.new(0.5, -200, 0.5, -250),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Window.CurrentTheme.Primary,
+        Parent = Window.ScreenGui
+    })
+    
+    -- 标题栏
+    Window.TitleBar = self:CreateInstance("Frame", {
+        Name = "TitleBar",
+        Size = UDim2.new(1, 0, 0, 40),
+        BackgroundColor3 = Window.CurrentTheme.Secondary,
+        Parent = Window.MainFrame
+    })
+    
+    Window.TitleLabel = self:CreateInstance("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0.7, 0, 1, 0),
+        Position = UDim2.new(0.05, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Text = config.Title or "UI Library",
+        TextColor3 = Window.CurrentTheme.Text,
+        TextSize = 18,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = Window.TitleBar
+    })
+    
+    -- 标签页容器
+    Window.TabContainer = self:CreateInstance("Frame", {
+        Name = "TabContainer",
+        Size = UDim2.new(1, 0, 1, -40),
+        Position = UDim2.new(0, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = Window.MainFrame
+    })
+    
+    -- 标签按钮容器
+    Window.TabButtons = self:CreateInstance("ScrollingFrame", {
+        Name = "TabButtons",
+        Size = UDim2.new(0, 120, 1, 0),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
+        Parent = Window.TabContainer
+    })
+    
+    -- 内容容器
+    Window.Content = self:CreateInstance("ScrollingFrame", {
+        Name = "Content",
+        Size = UDim2.new(1, -120, 1, 0),
+        Position = UDim2.new(0, 120, 0, 0),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 4,
+        Parent = Window.TabContainer
+    })
+    
+    -- UI列表布局
+    self:CreateInstance("UIListLayout", {
+        Parent = Window.Content,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 5)
+    })
+    
+    -- 拖拽功能
+    local dragging, dragInput, dragStart, startPos
+    Window.TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Window.MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    Window.TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Window.MainFrame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- 添加标签页方法
+    function Window:AddTab(config)
+        local Tab = {}
+        Tab.Config = config
+        Tab.Elements = {}
+        
+        -- 创建标签按钮
+        local tabButton = self:CreateInstance("TextButton", {
+            Name = config.Title,
+            Size = UDim2.new(1, -10, 0, 40),
+            Position = UDim2.new(0, 5, 0, #self.Tabs * 45),
+            BackgroundColor3 = #self.Tabs == 0 and self.CurrentTheme.Accent or self.CurrentTheme.Secondary,
+            Text = config.Icon and config.Icon .. " " .. config.Title or config.Title,
+            TextColor3 = self.CurrentTheme.Text,
+            TextSize = 14,
+            Font = Enum.Font.Gotham,
+            Parent = self.TabButtons
+        })
+        
+        -- 创建内容框架
+        local contentFrame = self:CreateInstance("Frame", {
+            Name = config.Title .. "Content",
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Visible = #self.Tabs == 0,
+            Parent = self.Content
+        })
+        
+        self:CreateInstance("UIListLayout", {
+            Parent = contentFrame,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 10)
+        })
+        
+        Tab.Button = tabButton
+        Tab.Content = contentFrame
+        
+        -- 标签切换逻辑
+        tabButton.MouseButton1Click:Connect(function()
+            for _, existingTab in pairs(self.Tabs) do
+                existingTab.Content.Visible = false
+                existingTab.Button.BackgroundColor3 = self.CurrentTheme.Secondary
+            end
+            contentFrame.Visible = true
+            tabButton.BackgroundColor3 = self.CurrentTheme.Accent
+        end)
+        
+        -- 添加控件的方法
+        function Tab:AddButton(config)
+            local button = self:CreateInstance("TextButton", {
+                Name = config.Title,
+                Size = UDim2.new(1, -20, 0, 40),
+                Position = UDim2.new(0, 10, 0, 0),
+                BackgroundColor3 = self.CurrentTheme.Secondary,
+                Text = config.Title,
+                TextColor3 = self.CurrentTheme.Text,
+                TextSize = 14,
+                Font = Enum.Font.Gotham,
+                AutoButtonColor = false,
+                Parent = self.Content
+            })
+            
+            -- 悬停效果
+            button.MouseEnter:Connect(function()
+                self:Tween(button, {BackgroundColor3 = self.CurrentTheme.Accent}, 0.2)
+            end)
+            
+            button.MouseLeave:Connect(function()
+                self:Tween(button, {BackgroundColor3 = self.CurrentTheme.Secondary}, 0.2)
+            end)
+            
+            -- 点击事件
+            if config.Callback then
+                button.MouseButton1Click:Connect(config.Callback)
+            end
+            
+            table.insert(self.Elements, button)
+            return button
+        end
+        
+        function Tab:AddToggle(config)
+            local toggleFrame = self:CreateInstance("Frame", {
+                Name = config.Title,
+                Size = UDim2.new(1, -20, 0, 40),
+                BackgroundColor3 = self.CurrentTheme.Secondary,
+                Parent = self.Content
+            })
+            
+            local toggleLabel = self:CreateInstance("TextLabel", {
+                Name = "Label",
+                Size = UDim2.new(0.7, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = config.Title,
+                TextColor3 = self.CurrentTheme.Text,
+                TextSize = 14,
+                Font = Enum.Font.Gotham,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = toggleFrame
+            })
+            
+            local toggleButton = self:CreateInstance("TextButton", {
+                Name = "Toggle",
+                Size = UDim2.new(0, 50, 0, 25),
+                Position = UDim2.new(0.85, -25, 0.5, -12.5),
+                BackgroundColor3 = config.Value and self.CurrentTheme.Accent or Color3.fromRGB(80, 80, 80),
+                Text = "",
+                Parent = toggleFrame
+            })
+            
+            local toggleState = config.Value or false
+            
+            local function updateToggle()
+                self:Tween(toggleButton, {
+                    BackgroundColor3 = toggleState and self.CurrentTheme.Accent or Color3.fromRGB(80, 80, 80)
+                }, 0.2)
+                
+                if config.Callback then
+                    config.Callback(toggleState)
+                end
+            end
+            
+            toggleButton.MouseButton1Click:Connect(function()
+                toggleState = not toggleState
+                updateToggle()
+            end)
+            
+            table.insert(self.Elements, toggleFrame)
+            return {SetValue = function(value) toggleState = value; updateToggle() end}
+        end
+        
+        function Tab:AddSlider(config)
+            local sliderFrame = self:CreateInstance("Frame", {
+                Name = config.Title,
+                Size = UDim2.new(1, -20, 0, 60),
+                BackgroundColor3 = self.CurrentTheme.Secondary,
+                Parent = self.Content
+            })
+            
+            local sliderLabel = self:CreateInstance("TextLabel", {
+                Name = "Label",
+                Size = UDim2.new(1, 0, 0, 20),
+                BackgroundTransparency = 1,
+                Text = config.Title .. ": " .. (config.Default or config.Min),
+                TextColor3 = self.CurrentTheme.Text,
+                TextSize = 14,
+                Font = Enum.Font.Gotham,
+                Parent = sliderFrame
+            })
+            
+            local sliderTrack = self:CreateInstance("Frame", {
+                Name = "Track",
+                Size = UDim2.new(1, -20, 0, 6),
+                Position = UDim2.new(0, 10, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+                Parent = sliderFrame
+            })
+            
+            local sliderFill = self:CreateInstance("Frame", {
+                Name = "Fill",
+                Size = UDim2.new(0, 0, 1, 0),
+                BackgroundColor3 = self.CurrentTheme.Accent,
+                Parent = sliderTrack
+            })
+            
+            local sliderHandle = self:CreateInstance("TextButton", {
+                Name = "Handle",
+                Size = UDim2.new(0, 15, 0, 15),
+                Position = UDim2.new(0, 0, 0.5, -7.5),
+                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                Text = "",
+                Parent = sliderTrack
+            })
+            
+            local min = config.Min or 0
+            local max = config.Max or 100
+            local currentValue = config.Default or min
+            
+            local function updateSlider(value)
+                currentValue = math.clamp(value, min, max)
+                local percentage = (currentValue - min) / (max - min)
+                
+                sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+                sliderHandle.Position = UDim2.new(percentage, -7.5, 0.5, -7.5)
+                sliderLabel.Text = config.Title .. ": " .. currentValue
+                
+                if config.Callback then
+                    config.Callback(currentValue)
+                end
+            end
+            
+            local dragging = false
+            sliderHandle.MouseButton1Down:Connect(function()
+                dragging = true
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    dragging = false
+                end
+            end)
+            
+            sliderTrack.MouseButton1Down:Connect(function(x, y)
+                local relativeX = x - sliderTrack.AbsolutePosition.X
+                local percentage = math.clamp(relativeX / sliderTrack.AbsoluteSize.X, 0, 1)
+                updateSlider(min + percentage * (max - min))
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local relativeX = input.Position.X - sliderTrack.AbsolutePosition.X
+                    local percentage = math.clamp(relativeX / sliderTrack.AbsoluteSize.X, 0, 1)
+                    updateSlider(min + percentage * (max - min))
+                end
+            end)
+            
+            updateSlider(currentValue)
+            table.insert(self.Elements, sliderFrame)
+            return {SetValue = updateSlider}
+        end
+        
+        table.insert(self.Tabs, Tab)
+        return Tab
+    end
+    
+    -- 显示/隐藏方法
+    function Window:Show()
+        self.ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    end
+    
+    function Window:Hide()
+        self.ScreenGui.Parent = nil
+    end
+    
+    function Window:Destroy()
+        self.ScreenGui:Destroy()
+    end
+    
+    -- 主题切换
+    function Window:SetTheme(themeName)
+        if self.Themes[themeName] then
+            self.CurrentTheme = self.Themes[themeName]
+            -- 更新所有元素的颜色
+            self:UpdateTheme()
+        end
+    end
+    
+    function Window:UpdateTheme()
+        -- 实现主题更新逻辑
+        self.MainFrame.BackgroundColor3 = self.CurrentTheme.Primary
+        self.TitleBar.BackgroundColor3 = self.CurrentTheme.Secondary
+        self.TitleLabel.TextColor3 = self.CurrentTheme.Text
+    end
+    
+    -- 通知系统
+    function Window:Notify(config)
+        local notification = self:CreateInstance("Frame", {
+            Name = "Notification",
+            Size = UDim2.new(0, 300, 0, 80),
+            Position = UDim2.new(1, 10, 0, 10),
+            AnchorPoint = Vector2.new(1, 0),
+            BackgroundColor3 = self.CurrentTheme.Secondary,
+            Parent = self.ScreenGui
+        })
+        
+        local title = self:CreateInstance("TextLabel", {
+            Text = config.Title or "通知",
+            TextColor3 = self.CurrentTheme.Text,
+            Size = UDim2.new(1, -10, 0, 25),
+            Position = UDim2.new(0, 5, 0, 5),
+            BackgroundTransparency = 1,
+            Font = Enum.Font.GothamBold,
+            TextSize = 16,
+            Parent = notification
+        })
+        
+        local content = self:CreateInstance("TextLabel", {
+            Text = config.Content or "",
+            TextColor3 = self.CurrentTheme.TextSecondary,
+            Size = UDim2.new(1, -10, 1, -35),
+            Position = UDim2.new(0, 5, 0, 30),
+            BackgroundTransparency = 1,
+            Font = Enum.Font.Gotham,
+            TextSize = 14,
+            Parent = notification
+        })
+        
+        -- 动画效果
+        self:Tween(notification, {Position = UDim2.new(1, -310, 0, 10)}, 0.3)
+        
+        -- 自动关闭
+        if config.Duration then
+            task.delay(config.Duration, function()
+                self:Tween(notification, {Position = UDim2.new(1, 10, 0, 10)}, 0.3)
+                task.wait(0.3)
+                notification:Destroy()
+            end)
+        end
+    end
+    
+    return Window
+end
+
+return UI_Library
